@@ -1,0 +1,939 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Лунный свет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Manrope:wght@300;400;500&display=swap">
+<style>
+/* Layout: одна ночь сверху вниз — восход луны, история, липкая сцена из четырёх состояний пьесы, карточки, луна в воде */
+:root {
+  --night: #0E1B2C;
+  --night-deep: #08111D;
+  --silver: #8A97A8;
+  --milk: #C9D6E8;
+  --moon: #F2EFE6;
+  --gold: #E8DDB5;
+  --line: rgba(201, 214, 232, 0.16);
+  --display: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  --body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --glow: 0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--milk);
+  font-family: var(--body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+.wrap { padding-inline: 20px; max-width: 980px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); font-weight: 300; color: var(--moon); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+.eyebrow { font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--silver); }
+a { color: inherit; }
+button { font: inherit; }
+:focus-visible { outline: 1px solid var(--gold); outline-offset: 4px; border-radius: 2px; }
+
+/* ---------- Звук ---------- */
+.sound {
+  position: fixed; z-index: 20;
+  top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(8, 17, 29, 0.6);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 8px 16px 8px 10px;
+  color: var(--moon); font-size: 13px; cursor: pointer;
+  transition: border-color .6s;
+}
+.sound:hover { border-color: rgba(232, 221, 181, 0.5); }
+.sound .mini-moon {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, var(--moon), var(--gold) 70%);
+  box-shadow: 0 0 0 rgba(232,221,181,0);
+  transition: box-shadow 1.2s;
+}
+.sound[aria-pressed="true"] .mini-moon { box-shadow: 0 0 14px 3px rgba(232, 221, 181, 0.55); animation: breathe 4s ease-in-out infinite; }
+@keyframes breathe { 50% { box-shadow: 0 0 22px 6px rgba(232, 221, 181, 0.35); } }
+
+/* ---------- Первый экран ---------- */
+/* 14.10: луна и текст — в одном столбце, луна больше не перекрывает надзаголовок */
+.hero {
+  position: relative;
+  min-height: 92svh;
+  display: grid; place-content: center; justify-items: center;
+  gap: clamp(32px, 6vh, 64px);
+  text-align: center;
+  padding-block: 96px 64px;
+  overflow: hidden;
+}
+.hero-moon {
+  position: relative;
+  width: min(42vw, 220px); aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 38%, #fffdf6 0%, var(--moon) 45%, #d9d6cc 100%);
+  box-shadow: 0 0 80px 20px rgba(201, 214, 232, 0.18), 0 0 220px 80px rgba(201, 214, 232, 0.08);
+  animation: rise 3.2s cubic-bezier(.2,.7,.2,1) both;
+  opacity: .92;
+}
+@keyframes rise { from { transform: translateY(60%); opacity: .25; filter: blur(6px); } }
+.hero-text { position: relative; display: grid; gap: 16px; justify-items: center; }
+.hero h1 { font-size: clamp(56px, 12vw, 128px); line-height: .95; animation: unblur 2.6s .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes unblur { from { filter: blur(14px); opacity: .3; letter-spacing: .08em; } }
+.hero .sub { font-family: var(--display); font-style: italic; font-size: clamp(20px, 3vw, 26px); color: var(--milk); }
+.hero-actions { display: grid; gap: 10px; justify-items: center; margin-top: 18px; }
+.btn-moon {
+  background: transparent; color: var(--moon);
+  border: 1px solid rgba(232, 221, 181, 0.55); border-radius: 999px;
+  padding: 12px 28px; cursor: pointer; letter-spacing: .04em;
+  transition: background .6s, color .6s;
+}
+.btn-moon:hover { background: var(--gold); color: var(--night-deep); }
+.hint { font-size: 13px; color: var(--silver); }
+.scroll-cue { margin-top: 36px; font-size: 13px; color: var(--silver); display: grid; justify-items: center; gap: 10px; }
+.scroll-cue::after { content: ""; width: 1px; height: 44px; background: linear-gradient(var(--silver), transparent); animation: drip 3s ease-in-out infinite; }
+@keyframes drip { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+
+/* ---------- История ---------- */
+.story { padding-block: 120px; display: grid; gap: 40px; }
+.story h2 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; max-width: 14ch; }
+.story-lines { display: grid; gap: 22px; max-width: 34em; margin-left: auto; }
+.story-lines p { margin: 0; font-size: clamp(17px, 2vw, 20px); color: var(--milk); }
+.story-lines .year { font-family: var(--display); font-size: 1.4em; color: var(--gold); font-variant-numeric: lining-nums; }
+
+/* 14.10: «15 лет одной линией» */
+.tl { --p: 0; display: grid; gap: 24px; margin-top: 24px; }
+.tl-years { display: flex; justify-content: space-between; align-items: flex-end;
+  font-family: var(--display); font-weight: 300; line-height: .8; font-variant-numeric: lining-nums;
+  font-size: clamp(64px, 13vw, 176px); color: var(--moon); }
+.tl-years span:first-child { opacity: calc(.35 + (1 - var(--p)) * .65); }
+.tl-years span:last-child { opacity: calc(.35 + var(--p) * .65); color: var(--gold); }
+.tl-track { position: relative; height: 48px; }
+.tl-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
+.tl-line::after { content: ""; position: absolute; left: 0; top: 0; height: 1px; width: calc(var(--p) * 100%); background: linear-gradient(90deg, rgba(232,221,181,.2), var(--gold)); }
+.tl-dot { position: absolute; top: 50%; left: calc(var(--at) * 100%); width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--night); border: 1px solid var(--silver); }
+/* луна: светлый диск, тёмный диск уезжает вправо — от тонкого серпа к полной */
+.tl-moon { position: absolute; top: 50%; left: calc(20px + var(--p) * (100% - 40px));   /* луна не вылезает за края линии */ width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 40% 38%, #fffdf6, var(--moon) 55%, #cfcbbf);
+  box-shadow: 0 0 calc(10px + var(--p) * 30px) calc(var(--p) * 8px) rgba(201,214,232,.25); }
+.tl-moon::after { content: ""; position: absolute; inset: -1px; border-radius: 50%; background: var(--night);
+  transform: translateX(calc(16% + var(--p) * 90%)); }
+.tl-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.tl-notes p { margin: 0; font-size: clamp(16px, 1.6vw, 19px); color: var(--milk); max-width: 24ch; transition: opacity .8s; }
+.tl-notes p:nth-child(2) { justify-self: center; text-align: center; }
+.tl-notes p:last-child { justify-self: end; text-align: right; }
+.js .tl-notes p { opacity: .3; }
+.js .tl-notes p.lit { opacity: 1; }
+.nobr { white-space: nowrap; }
+.tl-notes .year { font-family: var(--display); font-size: 1.4em; color: var(--gold); font-variant-numeric: lining-nums; }
+@media (max-width: 600px) {
+  .tl-notes { grid-template-columns: 1fr; gap: 14px; }
+  .tl-notes p, .tl-notes p:nth-child(2), .tl-notes p:last-child { justify-self: start; text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { .tl { --p: 1 !important; } .js .tl-notes p { opacity: 1; } }
+
+/* цитата Верлена в огромных кавычках (приём NY Phil) */
+.quote { position: relative; margin: 72px 0 0; padding: 48px clamp(16px, 8vw, 120px); text-align: center; display: grid; gap: 18px; justify-items: center; }
+/* ёлочки по правилам русского (и французского) языка; тонкий курсив, чтобы большие « » не читались как стрелки */
+.q-mark { position: absolute; top: 0; left: 0; font-family: var(--display); font-style: italic; font-weight: 300; font-size: clamp(96px, 13vw, 180px); line-height: 1; color: var(--gold); opacity: .28; }
+.q-mark.end { top: auto; bottom: -40px; left: auto; right: 0; }
+.quote blockquote { margin: 0; font-family: var(--display); font-style: italic; font-weight: 300; font-size: clamp(24px, 3.4vw, 40px); line-height: 1.25; color: var(--moon); }
+@media (max-width: 600px) { .quote { padding-inline: 0; } .quote blockquote { font-size: 18px; } }   /* строка стиха — целиком, без переносов */
+.q-ru { margin: 0; font-size: clamp(15px, 1.6vw, 18px); color: var(--milk); }
+.quote figcaption { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--silver); }
+.reveal { transition: opacity 1.8s ease, filter 1.8s ease, transform 1.8s ease; }
+.js .reveal:not(.lit) { opacity: .28; filter: blur(2px); transform: translateY(6px); }
+
+/* ---------- Сцена по скроллу ---------- */
+.score { position: relative; height: 400svh; }
+.stage {
+  position: sticky; top: 0; height: 100svh; overflow: hidden;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(201,214,232, calc(var(--glow) * 0.22)), transparent 60%),
+    var(--night-deep);
+  cursor: none;
+}
+/* 14.10 (замечание Алины): луна растёт не больше 36% высоты экрана и стоит выше —
+   даже в кульминации не доходит до текста внизу */
+.stage-moon {
+  position: absolute; left: 50%; top: 36%;
+  width: calc(min(80px, 10svh) + var(--glow) * min(220px, 26svh, 46vw)); aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 38%, #fffdf6, var(--moon) 50%, #cfcbbf);
+  opacity: calc(.15 + var(--glow) * .85);
+  box-shadow: 0 0 calc(var(--glow) * 160px) calc(var(--glow) * 50px) rgba(201,214,232,.22);
+  transition: width .3s linear;
+}
+.ripples { position: absolute; inset: 0; pointer-events: none; }
+/* 14.10 (замечание Алины): круги растут вместе со свечением, в кульминации — шире, ярче и чаще */
+.ripples span {
+  position: absolute; left: 50%; top: 36%;
+  width: calc(30vmin + var(--glow) * 30vmin); aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(201,214,232,.35);
+  transform: translate(-50%, -50%) scale(.4);
+  opacity: 0;
+}
+.flowing .ripples span { animation: ripple 6s ease-out infinite; }
+.flowing .ripples span:nth-child(2) { animation-delay: 1.5s; }
+.flowing .ripples span:nth-child(3) { animation-delay: 3s; }
+.flowing .ripples span:nth-child(4) { animation-delay: 4.5s; }
+.flowing .ripples span:nth-child(5) { animation-delay: .75s; }
+.flowing .ripples span:nth-child(6) { animation-delay: 2.25s; }
+@keyframes ripple { 15% { opacity: .5; } to { transform: translate(-50%, -50%) scale(3); opacity: 0; } }
+.peak .ripples span { border-color: rgba(232,221,181,.5); animation-name: ripple-peak; animation-duration: 4.5s; }
+@keyframes ripple-peak { 12% { opacity: .75; } to { transform: translate(-50%, -50%) scale(4.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ripples { display: none; } }
+.beam {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle 160px at var(--mx, 50%) var(--my, 60%), rgba(242,239,230,.16), transparent 70%);
+  mix-blend-mode: screen;
+}
+/* 14.10: текст прижат к низу сцены — название состояния больше не ложится на луну */
+.stage-text {
+  position: absolute; left: 0; right: 0; bottom: max(5svh, 28px); z-index: 2;
+  text-align: center;
+  display: grid; gap: 14px; justify-items: center; padding-inline: 20px;
+}
+.stage-text .eyebrow { color: var(--gold); }
+/* 14.10 (идея Алины): название состояния — в середине луны. Тусклая луна — светлый текст,
+   яркая (кульминация) — тёмно-синий: цвет плавно идёт за свечением */
+.moon-label {
+  position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); z-index: 1;
+  font-size: 11px; letter-spacing: .22em; text-transform: uppercase; white-space: nowrap;
+  /* переключение, а не плавное смешение: на сером полутоне смесь сливалась с луной */
+  color: color-mix(in srgb, var(--night-deep) clamp(0%, (var(--glow) - .34) * 100000%, 100%), var(--moon));
+  text-shadow: 0 0 6px rgba(8,17,29, clamp(0, (.34 - var(--glow)) * 3, .5));   /* тень — только у светлого текста, у тёмного она размывала буквы */
+  transition: color .4s;
+}
+.caption {
+  font-family: var(--display); font-size: clamp(26px, 4.4vw, 46px); line-height: 1.15;
+  color: var(--moon); max-width: 20ch;
+  transition: opacity .9s ease, filter .9s ease;
+}
+.caption.swap { opacity: 0; filter: blur(8px); }
+.stage-hint { font-size: 13px; color: var(--silver); }
+.progress { display: flex; gap: 10px; margin-top: 10px; }
+.progress i { width: 26px; height: 2px; background: var(--line); transition: background .8s; }
+.progress i.on { background: var(--gold); }
+/* 14.10 (замечание Алины): видно, что дальше можно листать */
+.next-cue { font-size: 13px; color: var(--silver); display: grid; justify-items: center; gap: 6px; letter-spacing: .04em; }
+.next-cue::after { content: ""; width: 1px; height: 28px; background: linear-gradient(var(--silver), transparent); animation: drip 3s ease-in-out infinite; }
+.next-btn { background: none; border: 1px solid rgba(232,221,181,.55); color: var(--moon); border-radius: 999px; padding: 10px 22px; cursor: pointer; letter-spacing: .04em; transition: background .6s, color .6s; }
+.next-btn:hover { background: var(--gold); color: var(--night-deep); }
+.stage .next-btn { cursor: pointer; }
+
+/* слова, которые проявляет луч */
+.hidden-words { position: absolute; inset: 0; pointer-events: none; }
+.hidden-words b {
+  position: absolute; font-family: var(--display); font-style: italic; font-weight: 300;
+  font-size: clamp(15px, 2vw, 20px); color: var(--moon);
+  opacity: .07; transition: opacity .5s;
+}
+.hidden-words b.near { opacity: .85; }
+/* 14.10 (идея Алины): под освещённым словом — короткое объяснение для тех, кто далёк от музыки */
+.hidden-words b small {
+  display: block; margin-top: 4px; max-width: 24ch;
+  font-family: var(--body); font-style: normal; font-weight: 400; font-size: 12px; line-height: 1.4;
+  color: var(--milk); opacity: 0; transition: opacity .5s .15s;
+}
+.hidden-words b.near small { opacity: 1; }
+.hidden-words b.right { text-align: right; }
+.hidden-words b.right small { margin-left: auto; }
+@media (max-width: 600px) { .hidden-words b small { max-width: 18ch; font-size: 11px; } }
+
+/* ---------- Что услышать ---------- */
+.listen { padding-block: 120px; display: grid; gap: 40px; }
+.listen h2 { font-size: clamp(36px, 6vw, 56px); }
+/* ---------- 14.10: нотный стан «Что услышать» — нота = момент записи (приём из Paul Kalkbrenner, принцип «текст как партитура») ---------- */
+.staff { position: relative; height: 150px; margin: 8px 0 4px; --lead: 136px; }   /* --lead — место под ключ и бемоли */
+@media (max-width: 600px) { .staff { --lead: 120px; } }
+.clef { position: absolute; left: 0; top: 14px; width: 120px; height: 96px; overflow: visible; }
+.clef .meter { font-family: var(--display); font-weight: 600; font-size: 27px; fill: var(--moon); text-anchor: middle; }
+/* целая пауза с ферматой в последнем такте — «тишина, задержись» */
+.rest { position: absolute; top: 14px; left: calc(var(--lead) + var(--x) * (100% - var(--lead)) + var(--shift, 0px)); width: 30px; height: 96px; transform: translateX(-50%); overflow: visible; }
+.rest .fill { fill: var(--moon); }
+.rest path { fill: none; stroke: var(--moon); stroke-width: 1.6; stroke-linecap: round; }
+.rest-lbl { position: absolute; top: 122px; left: calc(var(--lead) + var(--x) * (100% - var(--lead)) + var(--shift, 0px)); transform: translateX(-50%); font-size: 12px; color: var(--silver); white-space: nowrap; }
+.rest-lbl .short { display: none; }
+@media (max-width: 600px) { .rest, .rest-lbl { --shift: 18px; } .rest-lbl .long { display: none; } .rest-lbl .short { display: inline; } }
+.clef path { fill: none; stroke: var(--moon); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.clef .dot { fill: var(--moon); stroke: none; }
+.clef .flat { stroke: var(--milk); stroke-width: 1.4; }
+.key-name { position: absolute; top: 112px; left: 0; line-height: 1.35; font-family: var(--display); font-style: italic; font-size: 15px; color: var(--silver); white-space: nowrap; }
+.note.after-bar { --gap: 28px; }
+@media (max-width: 600px) { .key-name { font-size: 12px; } .note .tm { display: none; } .note.after-bar { --gap: 12px; } }
+.staff-lines { position: absolute; left: 0; right: 0; top: 34px; display: grid; gap: 11px; }
+.staff-lines i { display: block; height: 1px; background: var(--line); }
+.playhead { position: absolute; top: 28px; height: 72px; width: 1px; background: var(--gold); opacity: 0; transition: opacity .6s; left: calc(var(--lead) + var(--x, .02) * (100% - var(--lead))); }
+.playing-on .playhead { opacity: .8; }
+.note {
+  position: absolute; left: calc(var(--lead) + var(--x) * (100% - var(--lead)) + var(--gap, 0px)); top: calc(18px + var(--y) * 1px);
+  transform: translateX(-50%);
+  background: none; border: 0; padding: 0 10px; cursor: pointer; color: var(--moon);
+  display: grid; justify-items: center; gap: 0; min-width: 44px; min-height: 44px;
+}
+.note svg { width: 30px; height: 64px; overflow: visible; }
+.note .head { fill: var(--gold); transition: fill .4s, filter .4s; }
+.note .stem { stroke: var(--gold); stroke-width: 1.5; }
+.note:hover .head, .note:focus-visible .head, .note.on .head { fill: var(--moon); filter: drop-shadow(0 0 8px rgba(242,239,230,.7)); }
+.note .lbl { position: absolute; top: calc(104px - var(--y) * 1px); font-size: 12px; color: var(--silver); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.num { font-family: var(--display); font-style: italic; color: var(--gold); }
+.staff-hint { font-size: 13px; color: var(--silver); margin: 0; }
+/* тактовые черты по четырём частям пьесы — стан показывает всю форму */
+.bar { position: absolute; top: 34px; height: 45px; width: 1px; background: rgba(201,214,232,.35); left: calc(var(--lead) + var(--x) * (100% - var(--lead))); }
+.bar.end { width: 4px; box-shadow: -5px 0 0 -4px rgba(201,214,232,.35); background: rgba(201,214,232,.35); }
+.part { position: absolute; top: 4px; left: calc(var(--lead) + var(--x) * (100% - var(--lead))); padding-left: 8px; font-family: var(--display); font-style: italic; font-size: 15px; color: var(--silver); white-space: nowrap; }
+@media (max-width: 600px) { .part { font-size: 12px; } .part.long { display: none; } }
+.card .mark .t { font-variant-numeric: tabular-nums; }
+
+/* ---------- 14.10: вход-ритуал с загрузкой-оглавлением (приёмы EDOLUS и King of Pop) ---------- */
+.gate {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; text-align: center;
+  background: radial-gradient(ellipse at 50% 40%, #12223a, var(--night-deep) 70%);
+  padding: 24px; transition: opacity 1.2s ease, visibility 1.2s;
+}
+.gate.gone { opacity: 0; visibility: hidden; }
+.gate-inner { display: grid; gap: 28px; justify-items: center; max-width: 34em; }
+.gate-parts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin: 0; padding: 0; list-style: none; }
+.gate-parts li { font-family: var(--display); font-style: italic; font-size: clamp(20px, 3.2vw, 30px); color: var(--silver); opacity: .35; transition: opacity .9s, color .9s; }
+.gate-parts li.lit { opacity: 1; color: var(--moon); }
+.gate-pct { margin: 0; font-size: 13px; letter-spacing: .06em; color: var(--silver); font-variant-numeric: tabular-nums; }
+.gate-actions { display: grid; gap: 12px; justify-items: center; }
+.gate-enter { display: inline-flex; align-items: center; gap: 12px; padding: 14px 30px; font-size: 16px; }
+.gate-enter svg { width: 22px; height: 22px; }
+.gate-enter svg path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+
+/* ---------- 14.10: «Сейчас играет» в кнопке звука (приём Paul Kalkbrenner) ---------- */
+.eq { display: none; align-items: flex-end; gap: 2px; height: 14px; }
+.sound[aria-pressed="true"] .eq { display: inline-flex; }
+.sound[aria-pressed="true"] .mini-moon { display: none; }
+.eq i { width: 2px; background: var(--gold); border-radius: 1px; height: calc(3px + var(--lv, 0) * 11px); transition: height .12s; }
+.eq i:nth-child(2) { height: calc(3px + var(--lv, 0) * 7px + 3px); }
+.eq i:nth-child(3) { height: calc(3px + var(--lv, 0) * 9px); }
+#soundLabel { font-variant-numeric: tabular-nums; }
+
+/* 14.10: мини-лаборатория в карточке «Свободный темп» */
+.lab { margin-top: 8px; display: grid; gap: 12px; }
+.lab-water { position: relative; height: 72px; display: grid; align-content: center; justify-items: center; gap: 7px;
+  background: linear-gradient(var(--night-deep), var(--night)); border: 1px solid var(--line); overflow: hidden; }
+.lab-water i { display: block; height: 3px; border-radius: 3px; background: var(--moon); filter: blur(1px); will-change: transform; }
+.lab-water i:nth-child(1) { width: 46%; } .lab-water i:nth-child(2) { width: 34%; } .lab-water i:nth-child(3) { width: 52%; }
+.lab-water i:nth-child(4) { width: 26%; } .lab-water i:nth-child(5) { width: 38%; }
+.lab-switch { display: inline-flex; border: 1px solid rgba(232,221,181,.45); border-radius: 999px; padding: 3px; justify-self: start; }
+.lab-switch button { background: none; border: 0; border-radius: 999px; padding: 7px 16px; color: var(--silver); cursor: pointer; font-size: 14px; }
+.lab-switch button[aria-pressed="true"] { background: var(--gold); color: var(--night-deep); }
+.lab-note { margin: 0; font-size: 14px; color: var(--milk); min-height: 2.8em; }
+.lab-why { margin: 0; font-size: 13px; color: var(--silver); font-style: italic; font-family: var(--display); font-size: 15px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.card { background: var(--night); padding: 28px 24px 32px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card .mark { font-family: var(--display); font-style: italic; font-size: 15px; color: var(--gold); }
+.card h3 { font-size: 30px; }
+.card p { margin: 0; color: var(--milk); font-size: 15px; }
+.card em { font-style: normal; color: var(--gold); }
+
+/* ---------- Финал ---------- */
+.finale { position: relative; text-align: center; padding-block: 120px 0; overflow: hidden; }
+.finale h2 { font-size: clamp(36px, 6.5vw, 68px); line-height: 1.05; max-width: 16ch; margin: 0 auto; }
+.water {
+  position: relative; margin-top: 64px; height: 340px;
+  background: linear-gradient(var(--night), var(--night-deep) 55%, var(--night));   /* 14.10: вода плавно возвращается к фону — плеер больше не «разрезан» границей цвета */
+  display: grid; justify-items: center;
+}
+.set-moon {
+  position: absolute; top: -70px; width: 120px; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 40% 38%, #fffdf6, var(--moon) 50%, #cfcbbf);
+  box-shadow: 0 0 60px 14px rgba(201,214,232,.16);
+}
+.horizon { position: absolute; top: 60px; left: 0; right: 0; height: 1px; background: var(--line); }
+.reflection { position: absolute; top: 70px; display: grid; gap: 7px; justify-items: center; }
+.reflection i {
+  display: block; height: 3px; border-radius: 3px; background: var(--moon);
+  filter: blur(1.5px); animation: shimmer 5s ease-in-out infinite;
+}
+@keyframes shimmer { 50% { transform: translateX(6px) scaleX(.86); opacity: .6; } }
+.player {
+  position: relative; margin: 0 auto; max-width: 560px;
+  border: 1px solid var(--line); padding: 18px 20px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; text-align: left;
+  background: rgba(8,17,29,.6);
+}
+.player .play {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  border: 1px solid rgba(232,221,181,.55); background: transparent; color: var(--moon); cursor: pointer;
+}
+.player .meta { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.player .meta strong { font-weight: 400; color: var(--moon); }
+.player .meta span { font-size: 13px; color: var(--silver); }
+.finale-actions { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 36px; }
+.btn-ghost { background: none; border: 0; color: var(--silver); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; padding: 12px 8px; }
+footer { padding-block: 48px 40px; text-align: center; font-size: 12px; color: var(--silver); border-top: 1px solid var(--line); margin-top: 80px; }
+footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ — линия подвала легла под кнопки */
+.btn-soon { cursor: default; opacity: .75; }
+.btn-soon:hover { background: transparent; color: var(--moon); }
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--night-deep); border: 1px solid var(--line); color: var(--moon);
+  padding: 12px 18px; font-size: 14px; max-width: calc(100% - 32px); z-index: 30;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.toast button { background: none; border: 1px solid rgba(232,221,181,.55); color: var(--moon); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .js .reveal:not(.lit) { opacity: 1; filter: none; transform: none; }
+}
+@media (hover: none) { .stage { cursor: auto; } }
+/* 14.10: на телефоне текст сцены внизу — подсказка уходит наверх, под кнопку звука, и не закрывает его */
+/* подсказка всегда сверху, под кнопкой звука: внизу она закрывала «Листай дальше» и текст сцены */
+.toast { top: calc(64px + env(safe-area-inset-top, 0px)); bottom: auto; }
+@media (max-width: 600px) { .toast { width: max-content; } }
+</style>
+
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-inner">
+    <span class="eyebrow" id="gateTitle">Клод Дебюсси · Лунный свет</span>
+    <ol class="gate-parts" id="gateParts" aria-label="Четыре части пьесы">
+      <li>Сумерки</li><li>Течение</li><li>Кульминация</li><li>Тишина</li>
+    </ol>
+    <p class="gate-pct" id="gatePct" aria-live="polite">Настраиваем свет… 0%</p>
+    <div class="gate-actions" id="gateActions" hidden>
+      <button class="btn-moon gate-enter" id="gateEnter" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3v5H5a1 1 0 0 1-1-1zM20 15h-3v5h2a1 1 0 0 0 1-1z"/></svg>
+        Войти в ночь
+      </button>
+      <span class="hint">со звуком · лучше в наушниках</span>
+      <button class="btn-ghost" id="gateQuiet" type="button">Смотреть без звука</button>
+    </div>
+  </div>
+</div>
+
+<button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-label="Включить звук">
+  <span class="mini-moon" aria-hidden="true"></span>
+  <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+  <span id="soundLabel">Включить звук</span>
+</button>
+
+<main>
+  <section class="hero" aria-labelledby="title">
+    <div class="hero-moon" aria-hidden="true"></div>
+    <div class="hero-text wrap">
+      <span class="eyebrow">Клод Дебюсси, 1890–1905</span>
+      <h1 id="title">Лунный свет</h1>
+      <p class="sub">Пять минут ночной тишины</p>
+      <div class="hero-actions">
+        <button class="btn-moon" id="heroSound" type="button">Включить звук</button>
+        <button class="btn-ghost" id="fullListen" type="button">Слушать целиком — страница сама поплывёт</button>
+        <span class="hint">Лучше в наушниках · <a href="#history">Смотреть без звука</a></span>
+      </div>
+      <div class="scroll-cue">Листай медленно — музыка не торопится</div>
+    </div>
+  </section>
+
+  <section class="story wrap" id="history" aria-labelledby="story-title">
+    <span class="eyebrow reveal">История</span>
+    <h2 id="story-title" class="reveal">Музыка, которая ждала 15 лет</h2>
+    <!-- 14.10: «15 лет одной линией» — по линии идёт луна, от серпа (1890) до полной (1905) -->
+    <div class="tl" id="tl">
+      <div class="tl-years" aria-hidden="true"><span>1890</span><span>1905</span></div>
+      <div class="tl-track" aria-hidden="true">
+        <i class="tl-line"></i>
+        <i class="tl-dot" style="--at:0"></i><i class="tl-dot" style="--at:.5"></i><i class="tl-dot" style="--at:1"></i>
+        <span class="tl-moon"></span>
+      </div>
+      <div class="tl-notes">
+        <p style="--at:0">Дебюсси написал её около <span class="year">1890</span> года.</p>
+        <p style="--at:.5">Название взял у поэта Поля Верлена — из стихотворения о масках, музыке и лунном свете.</p>
+        <p style="--at:1">А опубликовал только в <span class="nobr"><span class="year">1905</span>-м</span>, третьей частью «Бергамасской сюиты».</p>
+      </div>
+    </div>
+
+    <!-- цитата Верлена: откуда название и «маски и бергамаски» (стихи 1869 г. — общественное достояние, перевод наш) -->
+    <figure class="quote reveal">
+      <blockquote lang="fr">«Votre âme est un paysage choisi<br>Que vont charmant masques et bergamasques<br>Jouant du luth et dansant et quasi<br>Tristes sous leurs déguisements fantasques.»</blockquote>
+      <p class="q-ru">«Душа у Вас — изысканный пейзаж.<br>Играет лютня, двигаются маски.<br>Почти печальный дивный антураж<br>старинной итальянской бергамаски.»</p>
+      <figcaption>Поль Верлен, «Лунный свет», 1869 · <span class="nobr">перевод Георгия Шенгели</span></figcaption>
+    </figure>
+  </section>
+
+  <section class="score" id="score" aria-label="Музыка по скроллу">
+    <div class="stage" id="stage">
+      <div class="stage-moon" aria-hidden="true"></div>
+      <span class="moon-label" id="stateName">Сумерки</span>
+      <div class="ripples" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="hidden-words" id="words" aria-hidden="true"></div>
+      <div class="beam" aria-hidden="true"></div>
+      <div class="stage-text">
+        <p class="caption" id="caption" aria-live="polite">Сначала почти ничего не слышно. Прислушайся.</p>
+        <span class="stage-hint" id="stageHint">Веди курсором — это твой лунный луч</span>
+        <div class="progress" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+        <span class="next-cue" id="nextCue">Листай дальше</span>
+        <button class="next-btn" id="nextBtn" type="button" hidden>Дальше: что услышать в пьесе ↓</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="listen wrap" id="listen" aria-labelledby="listen-title">
+    <span class="eyebrow reveal">Как слушать</span>
+    <h2 id="listen-title" class="reveal">Что услышать</h2>
+    <div class="staff reveal" id="staff">
+      <div class="staff-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <!-- скрипичный ключ и пять бемолей ре-бемоль мажора (си, ми, ля, ре, соль); линии стана: y 0 (фа) … 48 (ми), соль — 36 -->
+      <svg class="clef" viewBox="0 -20 120 96" role="img" aria-label="Скрипичный ключ, ре-бемоль мажор: пять бемолей, размер девять восьмых">
+        <path d="M15 38 C9 38 8 30 14 28 C22 26 26 36 20 42 C13 48 2 44 2 34 C2 22 14 14 20 4 C24 -4 22 -14 18 -14 C13 -14 11 -4 13 6 L18 56 C19 63 13 66 9 62"/>
+        <circle class="dot" cx="10" cy="59" r="2.6"/>
+        <path class="flat" d="M42 13 V27 M42 27 C48 23 48 18 42 21"/>
+        <path class="flat" d="M51 -5 V9 M51 9 C57 5 57 0 51 3"/>
+        <path class="flat" d="M60 19 V33 M60 33 C66 29 66 24 60 27"/>
+        <path class="flat" d="M69 1 V15 M69 15 C75 11 75 6 69 9"/>
+        <path class="flat" d="M78 25 V39 M78 39 C84 35 84 30 78 33"/>
+        <text class="meter" x="104" y="21">9</text><text class="meter" x="104" y="45">8</text>
+      </svg>
+      <span class="key-name" aria-hidden="true">ре-бемоль мажор<br>9/8 — качается по три</span>
+      <div class="playhead" id="playhead" aria-hidden="true"></div>
+    </div>
+    <p class="staff-hint">Нажми на ноту — музыка перейдёт к этому месту</p>
+    <div class="cards">
+      <article class="card reveal">
+        <span class="mark">в самом начале</span>
+        <h3>Почти шёпот</h3>
+        <p>Пьеса начинается так тихо, что хочется наклониться ближе. Это и есть приём.</p>
+      </article>
+      <article class="card reveal">
+        <span class="mark">на протяжении всей пьесы</span>
+        <h3>Свободный темп</h3>
+        <p>Музыка то замедляется, то ускоряется, как дыхание. Музыканты называют это <em>рубато</em>.</p>
+        <!-- 14.10: мини-лаборатория «ровно или свободно» -->
+        <div class="lab" id="lab">
+          <div class="lab-water" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="lab-switch" role="group" aria-label="Как качается отражение">
+            <button type="button" data-mode="free" aria-pressed="true">Свободно</button>
+            <button type="button" data-mode="even" aria-pressed="false">Ровно</button>
+          </div>
+          <p class="lab-note" id="labNote" aria-live="polite">Как играет пианист: движение то задерживается, то догоняет.</p>
+          <p class="lab-why">Поэтому луна на этом сайте живёт по фразам, а не по секундомеру.</p>
+        </div>
+      </article>
+      <article class="card reveal">
+        <span class="mark">в середине</span>
+        <h3>Переливы</h3>
+        <p>Звуки бегут волнами: так Дебюсси рисует свет на воде.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="finale" aria-labelledby="finale-title">
+    <div class="wrap">
+      <span class="eyebrow">Финал</span>
+      <h2 id="finale-title" style="margin-top:14px">Луна уходит. Но не насовсем.</h2>
+    </div>
+    <div class="water" role="img" aria-label="Полная луна над тёмной водой">
+      <div class="set-moon"></div>
+      <div class="horizon"></div>
+      <div class="reflection" aria-hidden="true">
+        <i style="width:120px"></i><i style="width:96px;animation-delay:.4s"></i><i style="width:132px;animation-delay:.8s"></i>
+        <i style="width:70px;animation-delay:1.2s"></i><i style="width:104px;animation-delay:1.6s"></i><i style="width:52px;animation-delay:2s"></i>
+        <i style="width:80px;animation-delay:2.4s"></i><i style="width:34px;animation-delay:2.8s"></i>
+      </div>
+    </div>
+    <div class="wrap" style="margin-top:-110px">
+      <div class="player">
+        <button class="play" id="playBtn" type="button" aria-label="Слушать">▶</button>
+        <div class="meta">
+          <strong>Полная запись</strong>
+          <span>Исполнитель: eldüendesüarez · <a href="https://commons.wikimedia.org/wiki/File:Debussy_-_Clair_de_lune.(Piano_Performance_by_eld%C3%BCendes%C3%BCarez).wav">Викисклад</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ru">CC BY-SA 4.0</a> · запись нарезана на фрагменты</span>
+        </div>
+      </div>
+      <div class="finale-actions">
+        <span class="btn-moon btn-soon" aria-disabled="true">Скоро: Сказка о царе Салтане</span>
+        <button class="btn-ghost" type="button" id="again">Послушать ещё раз</button>
+      </div>
+    </div>
+    <footer class="wrap">Концепт-сайт из серии <a href="../">«Звук в интерфейсе»</a>. <span class="nobr">Дизайн — <a href="https://vk.ru/diz_alinak" target="_blank" rel="noopener">Алина Кругликова</a></span></footer>
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* --- Проявление строк --- */
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('lit'); io.unobserve(e.target); } });
+  }, { threshold: .3 }) : null;
+  document.querySelectorAll('.reveal').forEach(el => io ? io.observe(el) : el.classList.add('lit'));
+
+  /* --- «15 лет одной линией»: луна идёт по линии вместе с прокруткой, строки загораются, когда она до них дошла --- */
+  const tl = document.getElementById('tl'), tlNotes = [...tl.querySelectorAll('.tl-notes p')];
+  function onTimeline() {
+    const r = tl.getBoundingClientRect();
+    const p = reduce ? 1 : Math.min(1, Math.max(0, (innerHeight * .85 - r.top) / (innerHeight * .6)));
+    tl.style.setProperty('--p', p.toFixed(3));
+    tlNotes.forEach(n => n.classList.toggle('lit', p >= parseFloat(n.style.getPropertyValue('--at')) - .08));
+  }
+  addEventListener('scroll', onTimeline, { passive: true }); addEventListener('resize', onTimeline); onTimeline();
+
+  /* --- Звук: настоящая запись, разделы по таймкодам (решение 14.10) ---
+     Один файл + таблица таймкодов. Прокрутка выбирает раздел, анимация сцены идёт за музыкой.
+     ТАЙМКОДЫ ЧЕРНОВЫЕ — по графику громкости; Алина поправит на слух (секунды). */
+  const SRC = 'zvuk/clair-de-lune.mp3';
+  const SEG = [               // четыре состояния сцены = четыре фрагмента пьесы
+    { from: 0,   to: 61 },    // Сумерки — тихое начало
+    { from: 61,  to: 98 },    // Течение — нарастание к первой вершине
+    { from: 98,  to: 180 },   // Кульминация — переливы
+    { from: 180, to: 274.8 }  // Тишина — возвращение темы и затухание
+  ];
+  const FINALE_FROM = 250;    // в финале — последние такты и затухание
+  const DUR = 274.8;          // длина записи (для нот, пока запись не загружена)
+  // ноты на стане «Что услышать»: момент в записи и высота ноты (px от верхней линии, чем больше — тем ниже)
+  const LISTEN = [
+    { t: 4,   y: 30, title: 'Почти шёпот' },     // ЧЕРНОВИК — Алина поправит на слух
+    { t: 61,  y: 14, title: 'Свободный темп' },
+    { t: 105, y: 10, title: 'Переливы' }
+  ];
+  const FADE = 1.6;           // плавный переход между фрагментами, с
+
+  let ctx, master, analyser, level, buffer = null, loading = null;
+  let src = null, srcGain = null, startedAt = 0, startOffset = 0, playing = false, auto = false;
+  const now = () => playing ? Math.min(buffer.duration, startOffset + ctx.currentTime - startedAt) : startOffset;
+  const segOf = t => { const i = SEG.findIndex(s => t < s.to); return i < 0 ? SEG.length - 1 : i; };
+
+  /* --- Загрузка записи сразу при открытии, с процентами (для входа-ритуала) --- */
+  const gate = document.getElementById('gate'), gatePct = document.getElementById('gatePct');
+  const raw = (async () => {
+    const r = await fetch(encodeURI(SRC));
+    if (!r.ok) throw new Error('audio');
+    const total = +r.headers.get('content-length') || 0;
+    if (!r.body || !total) return r.arrayBuffer();
+    const reader = r.body.getReader(), parts = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      parts.push(value); got += value.length;
+      gatePct.textContent = 'Настраиваем свет… ' + Math.min(99, Math.round(got / total * 100)) + '%';
+    }
+    const all = new Uint8Array(got); let o = 0; parts.forEach(p => { all.set(p, o); o += p.length; });
+    return all.buffer;
+  })();
+  raw.catch(() => {});
+
+  function load() {
+    if (loading) return loading;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();   // создаётся по нажатию — так браузер разрешает звук
+    master = ctx.createGain(); master.gain.value = .9;
+    analyser = ctx.createAnalyser(); analyser.fftSize = 1024; level = new Float32Array(analyser.fftSize);
+    master.connect(analyser); analyser.connect(ctx.destination);
+    loading = raw.then(b => new Promise((ok, no) => ctx.decodeAudioData(b.slice(0), ok, no))).then(b => buffer = b);
+    return loading;
+  }
+
+  /* --- Вход-ритуал: пока грузится — проценты и по очереди четыре части пьесы; потом выбор --- */
+  const parts = [...document.querySelectorAll('#gateParts li')];
+  let pi = 0;
+  const cycle = setInterval(() => { parts.forEach((li, i) => li.classList.toggle('lit', i === pi)); pi = (pi + 1) % parts.length; }, reduce ? 99999 : 900);
+  parts[0].classList.add('lit');
+  function closeGate() { clearInterval(cycle); gate.classList.add('gone'); gate.setAttribute('aria-hidden', 'true'); document.getElementById('heroSound').focus({ preventScroll: true }); }
+  raw.then(() => {
+    gatePct.textContent = 'Свет настроен';
+    parts.forEach(li => li.classList.add('lit'));
+    clearInterval(cycle);
+  }).catch(() => {
+    gatePct.textContent = 'Музыка не загрузилась — можно смотреть без звука';
+    document.getElementById('gateEnter').hidden = true;
+  }).finally(() => {
+    document.getElementById('gateActions').hidden = false;
+    (document.getElementById('gateEnter').hidden ? document.getElementById('gateQuiet') : document.getElementById('gateEnter')).focus();
+  });
+  // ?from=265 — начать с нужной секунды (сверка таймкодов, проверка финала)
+  const FROM = parseFloat(new URLSearchParams(location.search).get('from')) || 0;
+  document.getElementById('gateEnter').addEventListener('click', () => { closeGate(); setSound(true, FROM); });
+  document.getElementById('gateQuiet').addEventListener('click', closeGate);
+  if (/[?&]quiet\b/.test(location.search)) closeGate();   // адрес с ?quiet — сразу без экрана входа (снимки, запись экрана)
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !gate.classList.contains('gone')) closeGate(); });
+  // запустить запись с нужного места; прежний фрагмент затихает, новый вплывает
+  function startAt(offset) {
+    const t = ctx.currentTime, g = ctx.createGain(), s = ctx.createBufferSource();
+    s.buffer = buffer; s.connect(g); g.connect(master);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + FADE);
+    if (src) {
+      const os = src, og = srcGain; os.onended = null;
+      og.gain.cancelScheduledValues(t); og.gain.setValueAtTime(og.gain.value, t); og.gain.linearRampToValueAtTime(0, t + FADE);
+      os.stop(t + FADE + .05);
+    }
+    s.onended = () => { if (src !== s) return; src = null; playing = false; auto = false; startOffset = 0; updateUI(); afterglow(); };
+    s.start(t, offset);
+    src = s; srcGain = g; startedAt = t; startOffset = offset;
+  }
+  function seek(offset) { if (playing) startAt(offset); else startOffset = offset; }
+
+  // 14.10 (рецензия): после последнего звука — побыть в тишине. Свет ещё ~8 с медленно гаснет,
+  // и только потом тихое «Сыграть ещё раз?» (раньше предложение выскакивало сразу и обрывало пьесу)
+  const AFTERGLOW = 8;
+  function afterglow() {
+    const from = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--glow')) || .3;
+    const t0 = performance.now();
+    (function fade(now) {
+      if (playing) return;                                    // если снова включили звук — тишина кончилась
+      const q = Math.min(1, (now - t0) / (AFTERGLOW * 1000));
+      setGlow(from + (.02 - from) * (1 - Math.pow(1 - q, 3)));  // мягкое затухание
+      if (q < 1) requestAnimationFrame(fade);
+      else showToast('Музыка закончилась. Сыграть ещё раз?', true);
+    })(t0);
+  }
+
+  function setLabel(text) { document.getElementById('soundLabel').textContent = text; document.getElementById('heroSound').textContent = text; }
+  const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  // «Сейчас играет»: в кнопке звука — часть пьесы и время (обновляется из tick)
+  let lastLabel = 0;
+  function nowPlaying(t, i, rms) {
+    const btn = document.getElementById('soundBtn');
+    btn.style.setProperty('--lv', Math.min(1, rms * 6).toFixed(2));
+    if (performance.now() - lastLabel < 250) return;
+    lastLabel = performance.now();
+    document.getElementById('soundLabel').textContent = states[i].name + ' · ' + mmss(t);
+  }
+  function updateUI() {
+    setLabel(playing ? 'Выключить звук' : 'Включить звук');
+    if (playing) document.getElementById('soundLabel').textContent = states[segOf(now())].name + ' · ' + mmss(now());
+    document.getElementById('soundBtn').setAttribute('aria-label', playing ? 'Выключить звук' : 'Включить звук');
+    document.documentElement.classList.toggle('playing-on', playing);
+    document.getElementById('soundBtn').setAttribute('aria-pressed', String(playing));
+    document.getElementById('playBtn').textContent = playing ? '❚❚' : '▶';
+    document.getElementById('playBtn').setAttribute('aria-label', playing ? 'Пауза' : 'Слушать');
+  }
+  async function setSound(on, from) {
+    try {
+      if (on) {
+        setLabel('Настраиваем свет…');
+        await load(); await ctx.resume();
+        startAt(from ?? startOffset); playing = true; requestAnimationFrame(tick);
+      } else if (src) {
+        startOffset = now();
+        const t = ctx.currentTime, s = src;
+        srcGain.gain.setValueAtTime(srcGain.gain.value, t); srcGain.gain.linearRampToValueAtTime(0, t + .6);
+        s.onended = null; s.stop(t + .65); src = null; playing = false; auto = false;
+      }
+    } catch (e) {
+      playing = false; auto = false;
+      showToast('Музыка не загрузилась. Попробуй обновить страницу');
+    }
+    updateUI(); onScroll();
+  }
+  ['soundBtn', 'heroSound', 'playBtn'].forEach(id => document.getElementById(id).addEventListener('click', () => setSound(!playing)));
+  document.getElementById('again').addEventListener('click', () => playing ? seek(0) : setSound(true, 0));
+
+  /* --- Режим «Слушать целиком»: музыка от начала, страница сама листается под таймкоды --- */
+  document.getElementById('fullListen').addEventListener('click', () => { auto = true; setSound(true, 0); });
+  ['wheel', 'touchstart', 'keydown'].forEach(ev => addEventListener(ev, () => { auto = false; }, { passive: true }));
+  function autoScrollTo(t) {
+    const top = score.offsetTop, len = score.offsetHeight - innerHeight;
+    const fin = document.querySelector('.finale').offsetTop;
+    const lerp = (a, b, q) => a + (b - a) * Math.min(1, Math.max(0, q));
+    let y;
+    if (t < SEG[0].to) y = lerp(0, top + len * .02, t / SEG[0].to);                             // первый экран → история → сцена
+    else if (t < FINALE_FROM) y = top + len * (.02 + .96 * (t - SEG[0].to) / (FINALE_FROM - SEG[0].to)); // сцена
+    else y = lerp(top + len, fin, (t - FINALE_FROM) / (buffer.duration - FINALE_FROM - 4));     // финал
+    window.scrollTo({ top: y, behavior: 'instant' });
+  }
+
+  /* --- Каждый кадр, пока играет музыка: сцена слушается музыку --- */
+  function tick() {
+    if (!playing) return;
+    const t = now();
+    if (auto && !reduce) autoScrollTo(t);
+    analyser.getFloatTimeDomainData(level);
+    let sum = 0; for (let i = 0; i < level.length; i++) sum += level[i] * level[i];
+    const rms = Math.sqrt(sum / level.length);
+    const i = segOf(t), q = (t - SEG[i].from) / (SEG[i].to - SEG[i].from);
+    const base = [.05 + q * .1, .15 + q * .45, .6 + Math.sin(Math.PI * q) * .4, Math.max(.02, .6 * (1 - q))][i];
+    setGlow(Math.min(1, base + rms * .6));           // живое дыхание луны от громкости
+    showState(i);
+    nowPlaying(t, i, rms);
+    playhead.style.setProperty('--x', (.02 + .96 * t / buffer.duration).toFixed(4));
+    notes.forEach(n => n.classList.toggle('on', Math.abs(t - +n.dataset.t) < 6));
+    requestAnimationFrame(tick);
+  }
+
+  // финал: при входе в последний блок музыка переходит к последним тактам
+  const finale = document.querySelector('.finale');
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && playing && !auto && now() < FINALE_FROM) seek(FINALE_FROM);
+  }), { threshold: .35 }).observe(finale);
+
+  /* --- Нотный стан «Что услышать»: нота = момент записи, нажатие — переход туда --- */
+  const staff = document.getElementById('staff'), playhead = document.getElementById('playhead');
+  const X = t => (.02 + .96 * t / DUR).toFixed(3);   // доля полосы после ключа
+  ['Сумерки', 'Течение', 'Кульминация', 'Тишина'].forEach((name, k) => {
+    const bar = document.createElement('i'); bar.className = 'bar'; bar.setAttribute('aria-hidden', 'true');
+    bar.style.setProperty('--x', X(SEG[k].from)); if (k > 0) staff.appendChild(bar);   // после размера тактовая черта не нужна (замечание Алины)
+    const p = document.createElement('span'); p.className = 'part' + (k === 1 ? ' long' : ''); p.setAttribute('aria-hidden', 'true');
+    p.textContent = name; p.style.setProperty('--x', X(SEG[k].from)); staff.appendChild(p);
+  });
+  const endBar = document.createElement('i'); endBar.className = 'bar end'; endBar.setAttribute('aria-hidden', 'true');
+  endBar.style.setProperty('--x', X(DUR)); staff.appendChild(endBar);
+  // последний такт: целая пауза (висит под четвёртой линией) с ферматой над станом — «тишина, задержись»
+  const restX = X((SEG[3].from + DUR) / 2);
+  staff.insertAdjacentHTML('beforeend',
+    `<svg class="rest" viewBox="-15 -20 30 96" aria-hidden="true" style="--x:${restX}">
+       <rect class="fill" x="-6.5" y="12" width="13" height="5.5"/>
+       <path d="M-8 -6 A8 8 0 0 1 8 -6"/><circle class="fill" cx="0" cy="-7.5" r="1.5"/>
+     </svg>
+     <span class="rest-lbl" style="--x:${restX}" aria-hidden="true"><span class="long">пауза с ферматой — тишина, задержись</span><span class="short">пауза</span></span>`);
+  const notes = LISTEN.map((m, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'note'; b.dataset.t = m.t;
+    b.style.setProperty('--x', X(m.t));
+    // 14.10 (замечание Алины): нота не стоит вплотную к тактовой черте — если черта ближе 10 с, отступаем на 28 px вправо
+    if (SEG.some(s => Math.abs(s.from - m.t) < 10)) b.classList.add('after-bar');
+    b.style.setProperty('--y', m.y);
+    b.setAttribute('aria-label', `${m.title}: послушать с ${mmss(m.t)}`);
+    b.innerHTML = `<svg viewBox="0 0 30 64" aria-hidden="true"><line class="stem" x1="22" y1="4" x2="22" y2="52"/><ellipse class="head" cx="15" cy="54" rx="8.5" ry="6" transform="rotate(-22 15 54)"/></svg><span class="lbl"><span class="num">${k + 1}</span><span class="tm"> · ${mmss(m.t)}</span></span>`;
+    b.addEventListener('click', () => { auto = false; playing ? seek(m.t) : setSound(true, m.t); });
+    staff.appendChild(b);
+    return b;
+  });
+  // в карточках — тот же номер и время
+  document.querySelectorAll('.card .mark').forEach((el, k) => { if (LISTEN[k]) el.innerHTML = `<span class="num">${k + 1}</span> · <span class="t">${mmss(LISTEN[k].t)}</span> · ${el.textContent}`; });
+  // плейхед стоит по времени записи, нота должна стоять там же — ставим его в той же шкале с полями
+
+
+  /* --- Тост: один раз, если листают без звука --- */
+  const toast = document.getElementById('toast');
+  function showToast(text, withAction) {
+    toast.innerHTML = '';
+    const s = document.createElement('span'); s.textContent = text; toast.appendChild(s);
+    if (withAction) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Включить';
+      b.onclick = () => { setSound(true); toast.hidden = true; }; toast.appendChild(b);
+    }
+    toast.hidden = false;
+    setTimeout(() => toast.hidden = true, 6000);
+  }
+  let nudged = false;
+
+  /* --- Сцена: четыре состояния пьесы --- */
+  const states = [
+    { name: 'Сумерки', text: 'Сначала почти ничего не слышно. Прислушайся.' },
+    { name: 'Течение', text: 'Мелодия начинает переливаться, как свет на воде.' },
+    { name: 'Кульминация', text: 'Самый яркий момент. Луна в зените.' },
+    { name: 'Тишина', text: 'И снова тихо. Будто ничего не было.' }
+  ];
+  const score = document.getElementById('score'), stage = document.getElementById('stage');
+  const cap = document.getElementById('caption'), nameEl = document.getElementById('stateName');
+  const bars = document.querySelectorAll('.progress i');
+  let current = 0, scrollIdx = -1;
+  const glowCurve = p => p < .25 ? p * .6 : p < .5 ? .15 + (p - .25) * 1.8 : p < .72 ? .6 + (p - .5) * 1.8 : Math.max(.02, 1 - (p - .72) * 3.4);
+  function setGlow(v) { document.documentElement.style.setProperty('--glow', v.toFixed(3)); }
+  // подсказка «дальше»: в первых трёх состояниях — «Листай дальше», в «Тишине» — кнопка к следующему блоку
+  const nextCue = document.getElementById('nextCue'), nextBtn = document.getElementById('nextBtn');
+  nextBtn.addEventListener('click', () => { auto = false; document.getElementById('listen').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); });
+  function showState(idx) {
+    stage.classList.toggle('flowing', idx === 1 || idx === 2);
+    stage.classList.toggle('peak', idx === 2);
+    nextCue.hidden = idx === 3; nextBtn.hidden = idx !== 3;
+    if (idx === current) return;
+    current = idx;
+    bars.forEach((b, i) => b.classList.toggle('on', i <= idx));
+    cap.classList.add('swap');
+    setTimeout(() => { cap.textContent = states[current].text; nameEl.textContent = states[current].name; cap.classList.remove('swap'); }, reduce ? 0 : 450);
+  }
+
+  function onScroll() {
+    const r = score.getBoundingClientRect();
+    const total = score.offsetHeight - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / total));
+    const idx = Math.min(3, Math.floor(p * 4));
+    const inStage = r.top <= 0 && r.bottom >= innerHeight;
+    if (!playing) { setGlow(glowCurve(p)); showState(idx); }      // без звука — сцена от прокрутки, как раньше
+    else if (inStage && !auto && idx !== scrollIdx) {                 // листнула в другой раздел — музыка переходит туда
+      const a = segOf(now());
+      // первый вход в сцену: догоняем, только если прокрутка ушла вперёд музыки (назад не отматываем)
+      if (scrollIdx === -1 ? idx > a : idx !== a) seek(SEG[idx].from);
+    }
+    scrollIdx = inStage ? idx : scrollIdx;
+    if (!nudged && !playing && r.top < innerHeight * -.3) { nudged = true; showToast('Без звука тоже красиво, но с ним — в разы лучше.', true); }
+    // 14.10: подсказка живёт только внутри сцены — ниже она закрывала карточки «Что услышать»
+    if (r.bottom < innerHeight * 1.05) toast.hidden = true;
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* --- Мини-лаборатория «ровно или свободно»: отражение качается как метроном или как рубато --- */
+  (() => {
+    const lab = document.getElementById('lab'), lines = [...lab.querySelectorAll('.lab-water i')], note = document.getElementById('labNote');
+    const NOTES = {
+      free: 'Как играет пианист: движение то задерживается, то догоняет.',
+      even: 'Как метроном: каждый взмах одинаковый — ровно и сразу механически.'
+    };
+    let mode = 'free', phase = 0, last = 0, visible = false, slow = 0;
+    lab.querySelectorAll('.lab-switch button').forEach(b => b.addEventListener('click', () => {
+      mode = b.dataset.mode;
+      lab.querySelectorAll('.lab-switch button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      note.textContent = NOTES[mode];
+    }));
+    function frame(now) {
+      if (!visible) return;
+      const dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
+      slow += dt * .35;                                       // медленное «дыхание» фразы
+      // ровно — постоянная скорость; свободно — скорость то растёт, то тянется (рубато), и размах дышит вместе с ней
+      const speed = mode === 'even' ? 1 : 1 + .75 * Math.sin(slow * 2.1) + .25 * Math.sin(slow * 5.3);
+      phase += dt * Math.PI * 1.6 * Math.max(.15, speed);
+      const amp = mode === 'even' ? 14 : 8 + 10 * (.5 + .5 * Math.sin(slow * 2.1 + .8));
+      lines.forEach((l, i) => l.style.transform = `translateX(${(amp * Math.sin(phase + i * .55)).toFixed(1)}px) scaleX(${(1 - .12 * Math.abs(Math.sin(phase + i * .55))).toFixed(3)})`);
+      requestAnimationFrame(frame);
+    }
+    if (reduce) return;                                        // при «уменьшить движение» — без анимации, текст объясняет
+    new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; if (visible) { last = 0; requestAnimationFrame(frame); } })).observe(lab);
+  })();
+
+  /* --- Лунный луч и спрятанные слова --- */
+  const touch = matchMedia('(hover: none)').matches;
+  if (touch) document.getElementById('stageHint').textContent = 'Коснись экрана, чтобы осветить слова';
+  // слово и короткое объяснение простыми словами (правило серии: сначала простое слово, потом термин)
+  const phrases = [
+    ['clair de lune', '«лунный свет» по-французски'],
+    ['pianissimo', '«очень тихо» — так помечено начало пьесы'],
+    ['Верлен', 'поэт: из его стихотворения Дебюсси взял название'],
+    ['маски и бергамаски', 'строка Верлена: ряженые и старинный танец из итальянского Бергамо'],
+    ['тихий лунный свет', 'тоже Верлен: «спокойный лунный свет, печальный и прекрасный»'],
+    ['рубато', 'свободный темп: музыка то замедляется, то спешит, как дыхание'],
+    ['ре-бемоль мажор', 'тональность пьесы: пять бемолей, почти всё на чёрных клавишах'],
+    ['арпеджио', 'звуки аккорда по очереди, как перебор на арфе'],
+    ['Бергамасская сюита', 'сборник из четырёх пьес — «Лунный свет» в нём третья'],
+    ['con sordina', '«приглушённо» — так Дебюсси просит начать']
+  ];
+  const wordsBox = document.getElementById('words');
+  // 14.10: слова — только по краям и сверху, подальше от луны (центр) и главной фразы (низ по центру)
+  const spots = [[8,16],[92,16],[6,62],[94,60],[8,84],[94,84],[24,5],[94,36],[6,38],[60,5]];
+  phrases.forEach(([w, g], i) => {
+    const b = document.createElement('b'); b.textContent = w;
+    const s = document.createElement('small'); s.textContent = g; b.appendChild(s);
+    const [x, y] = spots[i];
+    if (x > 60) { b.classList.add('right'); b.style.right = (100 - x) + '%'; } else b.style.left = x + '%';   // у правого края — выравниваем вправо, чтобы подсказка не вылезала
+    b.style.top = y + '%';
+    wordsBox.appendChild(b);
+  });
+  const wordEls = [...wordsBox.children];
+  function beam(x, y) {
+    const r = stage.getBoundingClientRect();
+    stage.style.setProperty('--mx', (x - r.left) + 'px');
+    stage.style.setProperty('--my', (y - r.top) + 'px');
+    wordEls.forEach(el => {
+      const b = el.getBoundingClientRect();
+      const d = Math.hypot(b.left + b.width / 2 - x, b.top + b.height / 2 - y);
+      el.classList.toggle('near', d < (innerWidth < 600 ? 80 : 150));   // на телефоне луч уже — слова загораются по одному
+    });
+  }
+  stage.addEventListener('pointermove', e => beam(e.clientX, e.clientY));
+  stage.addEventListener('pointerdown', e => beam(e.clientX, e.clientY));
+})();
+</script>
+
+</body></html>
