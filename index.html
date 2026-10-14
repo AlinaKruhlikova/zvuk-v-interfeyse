@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Звук в интерфейсе — музыка, если бы она была сайтом</title>
+<meta name="description" content="Серия концепт-сайтов Алины Кругликовой: известные музыкальные произведения, переведённые в интерфейс.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Manrope:wght@300;400;500&display=swap">
+<style>
+  :root { --night:#0E1B2C; --deep:#08111D; --silver:#8A97A8; --milk:#C9D6E8; --moon:#F2EFE6; --gold:#E8DDB5; --line:rgba(201,214,232,.16); color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100svh; background: radial-gradient(ellipse at 50% 0, #12223a, var(--deep) 70%); color: var(--milk);
+    font: 300 16px/1.7 Manrope, "Segoe UI", system-ui, sans-serif; display: grid; }
+  main { width: min(980px, 100% - 32px); margin: 0 auto; padding: 96px 0 48px; display: grid; gap: 64px; align-content: start; }
+  .eyebrow { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--silver); }
+  h1 { margin: 16px 0 0; font: 300 clamp(48px, 9vw, 104px)/.95 "Cormorant Garamond", Georgia, serif; color: var(--moon); }
+  .lead { margin: 24px 0 0; max-width: 34em; font-size: clamp(17px, 2vw, 19px); }
+  .works { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .work { display: grid; grid-template-columns: 64px 1fr auto; gap: 24px; align-items: center; padding: 28px 24px; background: var(--night); color: inherit; text-decoration: none; }
+  a.work:hover .title, a.work:focus-visible .title { color: var(--gold); }
+  .num { font: italic 300 28px "Cormorant Garamond", serif; color: var(--gold); }
+  .title { font: 300 clamp(26px, 3.4vw, 36px)/1.1 "Cormorant Garamond", serif; color: var(--moon); transition: color .4s; }
+  .meta { font-size: 14px; color: var(--silver); }
+  .go { font-size: 14px; color: var(--moon); white-space: nowrap; }
+  .soon { opacity: .6; }
+  :focus-visible { outline: 1px solid var(--gold); outline-offset: 4px; }
+  footer { font-size: 12px; color: var(--silver); border-top: 1px solid var(--line); padding-top: 32px; text-align: center; }
+  footer a { color: inherit; }
+  .nobr { white-space: nowrap; }
+  @media (max-width: 600px) { .work { grid-template-columns: 40px 1fr; } .go { grid-column: 2; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="eyebrow">Серия концепт-сайтов</span>
+    <h1>Звук в&nbsp;интерфейсе</h1>
+    <p class="lead">Что, если бы музыка была сайтом? Каждое произведение здесь&nbsp;— отдельная страница, где форма пьесы становится прокруткой, а&nbsp;темп&nbsp;— движением.</p>
+  </header>
+
+  <nav class="works" aria-label="Произведения серии">
+    <a class="work" href="lunnyj-svet/">
+      <span class="num">01</span>
+      <span><span class="title">Лунный свет</span><br><span class="meta">Клод Дебюсси · пять минут ночной тишины</span></span>
+      <span class="go">Слушать →</span>
+    </a>
+    <div class="work soon" aria-disabled="true">
+      <span class="num">02</span>
+      <span><span class="title">Сказка о&nbsp;царе Салтане. Три чуда</span><br><span class="meta">Николай Римский-Корсаков</span></span>
+      <span class="go">Скоро</span>
+    </div>
+  </nav>
+
+  <footer>Концепт-проект, не&nbsp;коммерческий. <span class="nobr">Дизайн — <a href="https://vk.ru/diz_alinak" target="_blank" rel="noopener">Алина Кругликова</a></span></footer>
+</main>
+</body>
+</html>
