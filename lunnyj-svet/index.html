@@ -131,7 +131,7 @@ button { font: inherit; }
 .tl-notes .year { font-family: var(--display); font-size: 1.4em; color: var(--gold); font-variant-numeric: lining-nums; }
 @media (max-width: 600px) {
   .tl-notes { grid-template-columns: 1fr; gap: 14px; }
-  .tl-notes p, .tl-notes p:nth-child(2), .tl-notes p:last-child { justify-self: start; text-align: left; }
+  .tl-notes p, .tl-notes p:nth-child(2), .tl-notes p:last-child { justify-self: center; text-align: center; max-width: 30ch; }   /* 14.10: по центру (Алина) */
 }
 @media (prefers-reduced-motion: reduce) { .tl { --p: 1 !important; } .js .tl-notes p { opacity: 1; } }
 
@@ -244,7 +244,7 @@ button { font: inherit; }
 .hidden-words b.near small { opacity: 1; }
 .hidden-words b.right { text-align: right; }
 .hidden-words b.right small { margin-left: auto; }
-@media (max-width: 600px) { .hidden-words b small { max-width: 18ch; font-size: 11px; } }
+@media (max-width: 600px) { .hidden-words b small { display: none; } }   /* на телефоне объяснение показываем в строке под фразой — не налезает на луну и текст */
 
 /* ---------- Что услышать ---------- */
 .listen { padding-block: 120px; display: grid; gap: 40px; }
@@ -447,9 +447,9 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
         <span class="tl-moon"></span>
       </div>
       <div class="tl-notes">
-        <p style="--at:0">Дебюсси написал её около <span class="year">1890</span> года.</p>
-        <p style="--at:.5">Название взял у поэта Поля Верлена — из стихотворения о масках, музыке и лунном свете.</p>
-        <p style="--at:1">А опубликовал только в <span class="nobr"><span class="year">1905</span>-м</span>, третьей частью «Бергамасской сюиты».</p>
+        <p style="--at:0">Дебюсси написал её <span class="nobr">около <span class="year">1890</span> года</span>.</p>
+        <p style="--at:.5">Название взял у поэта Поля Верлена — из стихотворения о масках, музыке и лунном свете.</p>
+        <p style="--at:1">А опубликовал только <span class="nobr">в <span class="year">1905</span>-м</span>, третьей частью «Бергамасской сюиты».</p>
       </div>
     </div>
 
@@ -601,9 +601,14 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
   ];
   const FADE = 1.6;           // плавный переход между фрагментами, с
 
-  let ctx, master, analyser, level, buffer = null, loading = null;
-  let src = null, srcGain = null, startedAt = 0, startOffset = 0, playing = false, auto = false;
-  const now = () => playing ? Math.min(buffer.duration, startOffset + ctx.currentTime - startedAt) : startOffset;
+  /* 14.10 (телефон Алины: на 1:44 звук обрывался и начинался сначала): раньше вся запись раскладывалась в память
+     (~100 МБ) — встроенный браузер ВК на айфоне это сбрасывал. Теперь запись играет потоком через два <audio>
+     (по очереди — для плавных переходов), громкостью и анализатором управляет Web Audio. */
+  let ctx, master, analyser, level, blobUrl = null;
+  const els = [], gains = []; let active = -1;
+  let startOffset = 0, playing = false, auto = false;
+  const dur = () => (els[0] && isFinite(els[0].duration) && els[0].duration) || DUR;
+  const now = () => playing && active >= 0 ? els[active].currentTime : startOffset;
   const segOf = t => { const i = SEG.findIndex(s => t < s.to); return i < 0 ? SEG.length - 1 : i; };
 
   /* --- Загрузка записи сразу при открытии, с процентами (для входа-ритуала) --- */
@@ -623,15 +628,29 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
     return all.buffer;
   })();
   raw.catch(() => {});
+  // скачанный файл → ссылка в памяти браузера (5 МБ), её и играют <audio>, второй раз не качаем
+  raw.then(b => { blobUrl = URL.createObjectURL(new Blob([b], { type: 'audio/mpeg' })); }).catch(() => {});
 
-  function load() {
-    if (loading) return loading;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();   // создаётся по нажатию — так браузер разрешает звук
+  // создаём звук по нажатию (так браузер разрешает) — синхронно, если запись уже загружена
+  function ensureAudio() {
+    if (els.length) return true;
+    if (!blobUrl) return false;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = .9;
     analyser = ctx.createAnalyser(); analyser.fftSize = 1024; level = new Float32Array(analyser.fftSize);
     master.connect(analyser); analyser.connect(ctx.destination);
-    loading = raw.then(b => new Promise((ok, no) => ctx.decodeAudioData(b.slice(0), ok, no))).then(b => buffer = b);
-    return loading;
+    for (let k = 0; k < 2; k++) {
+      const a = new Audio(); a.src = blobUrl; a.preload = 'auto'; a.playsInline = true; a.setAttribute('playsinline', '');
+      const g = ctx.createGain(); g.gain.value = 0;
+      ctx.createMediaElementSource(a).connect(g); g.connect(master);
+      a.addEventListener('ended', () => { if (playing && els[active] === a) { playing = false; auto = false; startOffset = 0; updateUI(); afterglow(); } });
+      els.push(a); gains.push(g);
+    }
+    return true;
+  }
+  // айфон разрешает play() только из нажатия — «разблокируем» оба плеера тихо, пока палец на кнопке
+  function unlock() {
+    els.forEach(a => { if (!a.paused) return; const p = a.play(); if (p) p.then(() => { if (!(playing && els[active] === a)) a.pause(); }).catch(() => {}); });
   }
 
   /* --- Вход-ритуал: пока грузится — проценты и по очереди четыре части пьесы; потом выбор --- */
@@ -659,17 +678,16 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
   addEventListener('keydown', e => { if (e.key === 'Escape' && !gate.classList.contains('gone')) closeGate(); });
   // запустить запись с нужного места; прежний фрагмент затихает, новый вплывает
   function startAt(offset) {
-    const t = ctx.currentTime, g = ctx.createGain(), s = ctx.createBufferSource();
-    s.buffer = buffer; s.connect(g); g.connect(master);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + FADE);
-    if (src) {
-      const os = src, og = srcGain; os.onended = null;
-      og.gain.cancelScheduledValues(t); og.gain.setValueAtTime(og.gain.value, t); og.gain.linearRampToValueAtTime(0, t + FADE);
-      os.stop(t + FADE + .05);
+    const t = ctx.currentTime, nxt = active === 0 ? 1 : 0, a = els[nxt], g = gains[nxt];
+    try { a.currentTime = offset; } catch (e) {}
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + FADE);
+    const p = a.play(); if (p) p.catch(() => {});
+    if (active >= 0) {
+      const pa = els[active], pg = gains[active];
+      pg.gain.cancelScheduledValues(t); pg.gain.setValueAtTime(pg.gain.value, t); pg.gain.linearRampToValueAtTime(0, t + FADE);
+      setTimeout(() => { if (els[active] !== pa) pa.pause(); }, FADE * 1000 + 120);
     }
-    s.onended = () => { if (src !== s) return; src = null; playing = false; auto = false; startOffset = 0; updateUI(); afterglow(); };
-    s.start(t, offset);
-    src = s; srcGain = g; startedAt = t; startOffset = offset;
+    active = nxt; startOffset = offset;
   }
   function seek(offset) { if (playing) startAt(offset); else startOffset = offset; }
 
@@ -711,14 +729,16 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
   async function setSound(on, from) {
     try {
       if (on) {
-        setLabel('Настраиваем свет…');
-        await load(); await ctx.resume();
+        if (!ensureAudio()) { setLabel('Настраиваем свет…'); await raw; ensureAudio(); }
+        unlock();
+        await ctx.resume();
         startAt(from ?? startOffset); playing = true; requestAnimationFrame(tick);
-      } else if (src) {
+      } else if (active >= 0 && playing) {
         startOffset = now();
-        const t = ctx.currentTime, s = src;
-        srcGain.gain.setValueAtTime(srcGain.gain.value, t); srcGain.gain.linearRampToValueAtTime(0, t + .6);
-        s.onended = null; s.stop(t + .65); src = null; playing = false; auto = false;
+        const a = els[active], g = gains[active], t = ctx.currentTime;
+        g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + .6);
+        playing = false; auto = false;
+        setTimeout(() => { if (!playing) a.pause(); }, 700);
       }
     } catch (e) {
       playing = false; auto = false;
@@ -739,7 +759,7 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
     let y;
     if (t < SEG[0].to) y = lerp(0, top + len * .02, t / SEG[0].to);                             // первый экран → история → сцена
     else if (t < FINALE_FROM) y = top + len * (.02 + .96 * (t - SEG[0].to) / (FINALE_FROM - SEG[0].to)); // сцена
-    else y = lerp(top + len, fin, (t - FINALE_FROM) / (buffer.duration - FINALE_FROM - 4));     // финал
+    else y = lerp(top + len, fin, (t - FINALE_FROM) / (dur() - FINALE_FROM - 4));     // финал
     window.scrollTo({ top: y, behavior: 'instant' });
   }
 
@@ -756,7 +776,7 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
     setGlow(Math.min(1, base + rms * .6));           // живое дыхание луны от громкости
     showState(i);
     nowPlaying(t, i, rms);
-    playhead.style.setProperty('--x', (.02 + .96 * t / buffer.duration).toFixed(4));
+    playhead.style.setProperty('--x', (.02 + .96 * t / dur()).toFixed(4));
     notes.forEach(n => n.classList.toggle('on', Math.abs(t - +n.dataset.t) < 6));
     requestAnimationFrame(tick);
   }
@@ -911,7 +931,9 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
   ];
   const wordsBox = document.getElementById('words');
   // 14.10: слова — только по краям и сверху, подальше от луны (центр) и главной фразы (низ по центру)
-  const spots = [[8,16],[92,16],[6,62],[94,60],[8,84],[94,84],[24,5],[94,36],[6,38],[60,5]];
+  const spots = innerWidth < 600
+    ? [[5,8],[95,8],[5,17],[95,17],[5,26],[95,26],[5,35],[95,35],[5,44],[95,44]]   // телефон: только верх по краям, выше главной фразы
+    : [[8,16],[92,16],[6,62],[94,60],[8,84],[94,84],[24,5],[94,36],[6,38],[60,5]];
   phrases.forEach(([w, g], i) => {
     const b = document.createElement('b'); b.textContent = w;
     const s = document.createElement('small'); s.textContent = g; b.appendChild(s);
@@ -930,7 +952,14 @@ footer.wrap { margin-top: 96px; }   /* 14.10: .wrap обнулял отступ 
       const d = Math.hypot(b.left + b.width / 2 - x, b.top + b.height / 2 - y);
       el.classList.toggle('near', d < (innerWidth < 600 ? 80 : 150));   // на телефоне луч уже — слова загораются по одному
     });
+    // телефон: объяснение освещённого слова — в строке под главной фразой, вместо подсказки «Коснись экрана…»
+    if (innerWidth < 600) {
+      let lit = null, best = 1e9;   // ближайшее к пальцу освещённое слово
+      wordEls.forEach(el => { if (!el.classList.contains('near')) return; const b = el.getBoundingClientRect(), d = Math.hypot(b.left + b.width / 2 - x, b.top + b.height / 2 - y); if (d < best) { best = d; lit = el; } });
+      hintEl.textContent = lit ? lit.firstChild.textContent + ' — ' + lit.querySelector('small').textContent : hintText;
+    }
   }
+  const hintEl = document.getElementById('stageHint'), hintText = hintEl.textContent;
   stage.addEventListener('pointermove', e => beam(e.clientX, e.clientY));
   stage.addEventListener('pointerdown', e => beam(e.clientX, e.clientY));
 })();
